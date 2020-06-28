@@ -129,7 +129,7 @@ chunk-generation:
   population-queue-size: 1
 
 ticks-per:
-  autosave: 0
+  autosave: 36000
 
 auto-report:
   #Send crash reports for processing
