@@ -18,9 +18,6 @@ settings:
   #Set this approximately to your number of cores.
   #If set to auto, it'll try to detect the number of cores (or use 2)
   async-workers: auto
-  #Whether to allow running development builds. Dev builds might crash, break your plugins, corrupt your world and more.
-  #It is recommended to avoid using development builds where possible.
-  enable-dev-builds: false
 
 memory:
   #Global soft memory limit in megabytes. Set to 0 to disable
@@ -74,7 +71,7 @@ memory:
 
   world-caches:
     #Disallow adding to world chunk-packet caches when memory is low
-    disable-chunk-cache: true
+    disable-chunk-cache: false
     #Clear world caches when memory is low
     low-memory-trigger: true
 
@@ -102,7 +99,7 @@ debug:
 
 player:
   #Choose whether to enable player data saving.
-  save-player-data: true
+  save-player-data: false
 
 level-settings:
   #The default format that levels will use when created
@@ -111,28 +108,28 @@ level-settings:
 chunk-sending:
   #To change server normal render distance, change view-distance in server.properties.
   #Amount of chunks sent to players per tick
-  per-tick: 4
+  per-tick: 8
   #Radius of chunks that need to be sent before spawning the player
-  spawn-radius: 4
+  spawn-radius: 8
 
 chunk-ticking:
   #Max amount of chunks processed each tick
   per-tick: 40
   #Radius of chunks around a player to tick
-  tick-radius: 3
+  tick-radius: 1
   #Number of blocks inside ticking areas' subchunks that get ticked every tick. Higher values will accelerate events
   #like tree and plant growth, but at a higher performance cost.
-  blocks-per-subchunk-per-tick: 3
+  blocks-per-subchunk-per-tick: 0
   #IDs of blocks not to perform random ticking on.
   disable-block-ticking:
-    #- 2 # grass
+#    - 2 # grass
 
 chunk-generation:
   #Max. amount of chunks in the waiting queue to be populated
-  population-queue-size: 32
+  population-queue-size: 1
 
 ticks-per:
-  autosave: 6000
+  autosave: 0
 
 auto-report:
   #Send crash reports for processing
