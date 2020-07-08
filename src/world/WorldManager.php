@@ -169,6 +169,27 @@ class WorldManager{
 	}
 
 	/**
+	 * Add world to the manager and call init + load events
+	 *
+	 * @param \pocketmine\world\World $world
+	 * @param bool                    $init
+	 */
+	public function addWorld(World $world, bool $init = false) : void{
+		if(isset($this->worlds[$id = $world->getId()])) {
+			throw new \InvalidArgumentException("World already exists");
+		}
+
+		$this->worlds[$id] = $world;
+		$world->setAutoSave($this->autoSave);
+
+		if($init) {
+			(new WorldInitEvent($world))->call();
+		}
+
+		(new WorldLoadEvent($world))->call();
+	}
+
+	/**
 	 * Loads a world from the data directory
 	 *
 	 * @param bool   $autoUpgrade Converts worlds to the default format if the world's format is not writable / deprecated
@@ -230,12 +251,7 @@ class WorldManager{
 			$this->server->getLogger()->notice("Upgraded world \"$name\" to new format successfully. Backed up pre-conversion world at " . $converter->getBackupPath());
 		}
 
-		$world = new World($this->server, $name, $provider, $this->server->getAsyncPool());
-
-		$this->worlds[$world->getId()] = $world;
-		$world->setAutoSave($this->autoSave);
-
-		(new WorldLoadEvent($world))->call();
+		$this->addWorld(new World($this->server, $name, $provider, $this->server->getAsyncPool()));
 
 		return true;
 	}
@@ -266,14 +282,7 @@ class WorldManager{
 		$providerClass::generate($path, $name, $seed, $generator, $options);
 
 		/** @see WritableWorldProvider::__construct() */
-		$world = new World($this->server, $name, new $providerClass($path), $this->server->getAsyncPool());
-		$this->worlds[$world->getId()] = $world;
-
-		$world->setAutoSave($this->autoSave);
-
-		(new WorldInitEvent($world))->call();
-
-		(new WorldLoadEvent($world))->call();
+		$this->addWorld($world = new World($this->server, $name, new $providerClass($path), $this->server->getAsyncPool()), true);
 
 		if($backgroundGeneration){
 			$this->server->getLogger()->notice($this->server->getLanguage()->translateString("pocketmine.level.backgroundGeneration", [$name]));
