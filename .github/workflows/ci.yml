@@ -1,0 +1,31 @@
+name: ci
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    name: Build docker image
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+          fetch-depth: 1
+      - name: Get the current branch name
+        shell: bash
+        run: echo "::set-output name=branch::${GITHUB_REF#refs/heads/}"
+        id: ref
+      - name: Build + push pmmp image
+        uses: nxtlvlsoftware/docker-build-action@master
+        with:
+          name: docker.pkg.github.com/nxtlvlsoftware/pmmp/server
+          tag: ${{ steps.ref.outputs.branch }}
+          registry_username: ${{ secrets.DOCKER_USERNAME }}
+          registry_password: ${{ secrets.DOCKER_PASSWORD }}
+          registry_uri: ${{ secrets.DOCKER_REGISTRY }}
+          pull: false
+          extra_args: "--build-arg PHP_VERSION=${{ steps.ref.outputs.branch }}"
