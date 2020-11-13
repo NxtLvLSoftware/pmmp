@@ -67,6 +67,22 @@ class ChunkCache implements ChunkListener{
 		}
 		return self::$instances[$worldId][$compressorId];
 	}
+	/**
+	 * Proxy a parent worlds cache to a child world.
+	 *
+	 * @param \pocketmine\world\World                         $parent
+	 * @param \pocketmine\world\World                         $child
+	 * @param \pocketmine\network\mcpe\compression\Compressor $compressor
+	 */
+	public static function proxyCache(World $parent, World $child, Compressor $compressor) : void {
+		$worldId = spl_object_id($child);
+		$compressorId = spl_object_id($compressor);
+		self::$instances[$worldId][$compressorId] = self::getInstance($parent, $compressor);
+		$child->addOnUnloadCallback(static function() use ($worldId) : void{
+			unset(self::$instances[$worldId]);
+			\GlobalLogger::get()->debug("Destroyed proxy chunk packet cache for world#$worldId");
+		});
+	}
 
 	/** @var World */
 	private $world;
