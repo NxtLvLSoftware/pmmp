@@ -204,7 +204,7 @@ class World implements ChunkManager{
 	private $displayName;
 
 	/** @var Chunk[] */
-	private $chunks = [];
+	protected $chunks = [];
 
 	/** @var Vector3[][] */
 	private $changedBlocks = [];
@@ -262,7 +262,7 @@ class World implements ChunkManager{
 	 * @var string
 	 * @phpstan-var class-string<\pocketmine\world\generator\Generator>
 	 */
-	private $generator;
+	protected $generator;
 
 	/** @var bool */
 	private $closed = false;
