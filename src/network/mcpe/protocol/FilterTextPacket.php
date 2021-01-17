@@ -25,41 +25,38 @@ namespace pocketmine\network\mcpe\protocol;
 
 #include <rules/DataPacket.h>
 
-use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\network\mcpe\protocol\serializer\PacketSerializer;
-use pocketmine\network\mcpe\protocol\types\CacheableNbt;
 
-class UpdateBlockPropertiesPacket extends DataPacket implements ClientboundPacket{
-	public const NETWORK_ID = ProtocolInfo::UPDATE_BLOCK_PROPERTIES_PACKET;
+class FilterTextPacket extends DataPacket implements ClientboundPacket, ServerboundPacket{
+	public const NETWORK_ID = ProtocolInfo::FILTER_TEXT_PACKET;
 
-	/**
-	 * @var CacheableNbt
-	 * @phpstan-var CacheableNbt<\pocketmine\nbt\tag\CompoundTag>
-	 */
-	private $blockProperties;
+	/** @var string */
+	private $text;
+	/** @var bool */
+	private $fromServer;
 
-	public static function create(CompoundTag $data) : self{
+	public static function create(string $text, bool $server) : self{
 		$result = new self;
-		$result->blockProperties = new CacheableNbt($data);
+		$result->text = $text;
+		$result->fromServer = $server;
 		return $result;
 	}
 
-	/**
-	 * @phpstan-return CacheableNbt<\pocketmine\nbt\tag\CompoundTag>
-	 */
-	public function getBlockProperties() : CacheableNbt{
-		return $this->blockProperties;
-	}
+	public function getText() : string{ return $this->text; }
+
+	public function isFromServer() : bool{ return $this->fromServer; }
 
 	protected function decodePayload(PacketSerializer $in) : void{
-		$this->blockProperties = new CacheableNbt($in->getNbtCompoundRoot());
+		$this->text = $in->getString();
+		$this->fromServer = $in->getBool();
 	}
 
 	protected function encodePayload(PacketSerializer $out) : void{
-		$out->put($this->blockProperties->getEncodedNbt());
+		$out->putString($this->text);
+		$out->putBool($this->fromServer);
 	}
 
 	public function handle(PacketHandlerInterface $handler) : bool{
-		return $handler->handleUpdateBlockProperties($this);
+		return $handler->handleFilterText($this);
 	}
 }

@@ -21,9 +21,10 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\network\mcpe;
+namespace pocketmine\network\mcpe\cache;
 
 use pocketmine\math\Vector3;
+use pocketmine\network\mcpe\ChunkRequestTask;
 use pocketmine\network\mcpe\compression\CompressBatchPromise;
 use pocketmine\network\mcpe\compression\Compressor;
 use pocketmine\world\ChunkListener;
@@ -109,6 +110,10 @@ class ChunkCache implements ChunkListener{
 	 */
 	public function request(int $chunkX, int $chunkZ) : CompressBatchPromise{
 		$this->world->registerChunkListener($this, $chunkX, $chunkZ);
+		$chunk = $this->world->getChunk($chunkX, $chunkZ);
+		if($chunk === null){
+			throw new \InvalidArgumentException("Cannot request an unloaded chunk");
+		}
 		$chunkHash = World::chunkHash($chunkX, $chunkZ);
 
 		if(isset($this->caches[$chunkHash])){
@@ -118,7 +123,7 @@ class ChunkCache implements ChunkListener{
 
 		++$this->misses;
 
-		$this->world->timings->syncChunkSendPrepareTimer->startTiming();
+		$this->world->timings->syncChunkSendPrepare->startTiming();
 		try{
 			$this->caches[$chunkHash] = new CompressBatchPromise();
 
@@ -126,7 +131,7 @@ class ChunkCache implements ChunkListener{
 				new ChunkRequestTask(
 					$chunkX,
 					$chunkZ,
-					$this->world->getChunk($chunkX, $chunkZ),
+					$chunk,
 					$this->caches[$chunkHash],
 					$this->compressor,
 					function() use ($chunkX, $chunkZ) : void{
@@ -139,7 +144,7 @@ class ChunkCache implements ChunkListener{
 
 			return $this->caches[$chunkHash];
 		}finally{
-			$this->world->timings->syncChunkSendPrepareTimer->stopTiming();
+			$this->world->timings->syncChunkSendPrepare->stopTiming();
 		}
 	}
 
@@ -194,9 +199,9 @@ class ChunkCache implements ChunkListener{
 	/**
 	 * @see ChunkListener::onChunkChanged()
 	 */
-	public function onChunkChanged(Chunk $chunk) : void{
+	public function onChunkChanged(int $chunkX, int $chunkZ, Chunk $chunk) : void{
 		//FIXME: this gets fired for stuff that doesn't change terrain related things (like lighting updates)
-		$this->destroyOrRestart($chunk->getX(), $chunk->getZ());
+		$this->destroyOrRestart($chunkX, $chunkZ);
 	}
 
 	/**
@@ -211,9 +216,9 @@ class ChunkCache implements ChunkListener{
 	/**
 	 * @see ChunkListener::onChunkUnloaded()
 	 */
-	public function onChunkUnloaded(Chunk $chunk) : void{
-		$this->destroy($chunk->getX(), $chunk->getZ());
-		$this->world->unregisterChunkListener($this, $chunk->getX(), $chunk->getZ());
+	public function onChunkUnloaded(int $chunkX, int $chunkZ, Chunk $chunk) : void{
+		$this->destroy($chunkX, $chunkZ);
+		$this->world->unregisterChunkListener($this, $chunkX, $chunkZ);
 	}
 
 	/**

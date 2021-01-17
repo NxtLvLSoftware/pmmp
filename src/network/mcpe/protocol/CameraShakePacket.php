@@ -27,29 +27,46 @@ namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\network\mcpe\protocol\serializer\PacketSerializer;
 
-class ActorFallPacket extends DataPacket implements ServerboundPacket{
-	public const NETWORK_ID = ProtocolInfo::ACTOR_FALL_PACKET;
+class CameraShakePacket extends DataPacket implements ClientboundPacket{
+	public const NETWORK_ID = ProtocolInfo::CAMERA_SHAKE_PACKET;
 
-	/** @var int */
-	public $entityRuntimeId;
+	public const TYPE_POSITIONAL = 0;
+	public const TYPE_ROTATIONAL = 1;
+
 	/** @var float */
-	public $fallDistance;
-	/** @var bool */
-	public $isInVoid;
+	private $intensity;
+	/** @var float */
+	private $duration;
+	/** @var int */
+	private $shakeType;
+
+	public static function create(float $intensity, float $duration, int $shakeType) : self{
+		$result = new self;
+		$result->intensity = $intensity;
+		$result->duration = $duration;
+		$result->shakeType = $shakeType;
+		return $result;
+	}
+
+	public function getIntensity() : float{ return $this->intensity; }
+
+	public function getDuration() : float{ return $this->duration; }
+
+	public function getShakeType() : int{ return $this->shakeType; }
 
 	protected function decodePayload(PacketSerializer $in) : void{
-		$this->entityRuntimeId = $in->getEntityRuntimeId();
-		$this->fallDistance = $in->getLFloat();
-		$this->isInVoid = $in->getBool();
+		$this->intensity = $in->getLFloat();
+		$this->duration = $in->getLFloat();
+		$this->shakeType = $in->getByte();
 	}
 
 	protected function encodePayload(PacketSerializer $out) : void{
-		$out->putEntityRuntimeId($this->entityRuntimeId);
-		$out->putLFloat($this->fallDistance);
-		$out->putBool($this->isInVoid);
+		$out->putLFloat($this->intensity);
+		$out->putLFloat($this->duration);
+		$out->putByte($this->shakeType);
 	}
 
 	public function handle(PacketHandlerInterface $handler) : bool{
-		return $handler->handleActorFall($this);
+		return $handler->handleCameraShake($this);
 	}
 }

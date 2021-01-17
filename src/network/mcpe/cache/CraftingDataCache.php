@@ -21,7 +21,7 @@
 
 declare(strict_types=1);
 
-namespace pocketmine\network\mcpe;
+namespace pocketmine\network\mcpe\cache;
 
 use pocketmine\crafting\CraftingManager;
 use pocketmine\item\Item;
@@ -67,7 +67,7 @@ final class CraftingDataCache{
 	 * Rebuilds the cached CraftingDataPacket.
 	 */
 	private function buildCraftingDataCache(CraftingManager $manager) : CraftingDataPacket{
-		Timings::$craftingDataCacheRebuildTimer->startTiming();
+		Timings::$craftingDataCacheRebuild->startTiming();
 		$pk = new CraftingDataPacket();
 		$pk->cleanRecipes = true;
 
@@ -127,6 +127,7 @@ final class CraftingDataCache{
 			);
 		}
 
+		Timings::$craftingDataCacheRebuild->stopTiming();
 		return $pk;
 	}
 }

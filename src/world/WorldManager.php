@@ -293,7 +293,7 @@ class WorldManager{
 
 			foreach((new ChunkSelector())->selectChunks(3, $centerX, $centerZ) as $index){
 				World::getXZ($index, $chunkX, $chunkZ);
-				$world->populateChunk($chunkX, $chunkZ, true);
+				$world->orderChunkPopulation($chunkX, $chunkZ);
 			}
 		}
 
@@ -383,7 +383,7 @@ class WorldManager{
 	}
 
 	private function doAutoSave() : void{
-		Timings::$worldSaveTimer->startTiming();
+		Timings::$worldSave->startTiming();
 		foreach($this->worlds as $world){
 			foreach($world->getPlayers() as $player){
 				if($player->spawned){
@@ -392,6 +392,6 @@ class WorldManager{
 			}
 			$world->save(false);
 		}
-		Timings::$worldSaveTimer->stopTiming();
+		Timings::$worldSave->stopTiming();
 	}
 }

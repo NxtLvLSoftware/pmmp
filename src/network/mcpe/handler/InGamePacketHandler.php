@@ -47,7 +47,6 @@ use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\InventoryManager;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
-use pocketmine\network\mcpe\protocol\ActorFallPacket;
 use pocketmine\network\mcpe\protocol\ActorPickRequestPacket;
 use pocketmine\network\mcpe\protocol\AdventureSettingsPacket;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
@@ -128,6 +127,9 @@ class InGamePacketHandler extends PacketHandler{
 	/** @var Vector3|null */
 	protected $lastRightClickPos = null;
 
+	/** @var bool */
+	public $forceMoveSync = false;
+
 	/**
 	 * TODO: HACK! This tracks GUIs for inventories that the server considers "always open" so that the client can't
 	 * open them twice. (1.16 hack)
@@ -158,7 +160,21 @@ class InGamePacketHandler extends PacketHandler{
 		}
 
 		$this->player->setRotation($yaw, $pitch);
-		$this->player->updateNextPosition($packet->position->round(4)->subtract(0, 1.62, 0));
+
+		$curPos = $this->player->getLocation();
+		$newPos = $packet->position->subtract(0, 1.62, 0);
+
+		if($this->forceMoveSync and $newPos->distanceSquared($curPos) > 1){  //Tolerate up to 1 block to avoid problems with client-sided physics when spawning in blocks
+			$this->session->syncMovement($curPos, null, null, MovePlayerPacket::MODE_RESET);
+			$this->session->getLogger()->debug("Got outdated pre-teleport movement, received " . $newPos . ", expected " . $curPos);
+			//Still getting movements from before teleport, ignore them
+			return false;
+		}
+
+		// Once we get a movement within a reasonable distance, treat it as a teleport ACK and remove position lock
+		$this->forceMoveSync = false;
+
+		$this->player->handleMovement($newPos);
 
 		return true;
 	}
@@ -279,7 +295,7 @@ class InGamePacketHandler extends PacketHandler{
 				 * So people don't whine about messy desync issues when someone cancels CraftItemEvent, or when a crafting
 				 * transaction goes wrong.
 				 */
-				$this->session->sendDataPacket(ContainerClosePacket::create(InventoryManager::HARDCODED_CRAFTING_GRID_WINDOW_ID));
+				$this->session->sendDataPacket(ContainerClosePacket::create(InventoryManager::HARDCODED_CRAFTING_GRID_WINDOW_ID, true));
 
 				return false;
 			}finally{
@@ -432,6 +448,7 @@ class InGamePacketHandler extends PacketHandler{
 	}
 
 	public function handleMobEquipment(MobEquipmentPacket $packet) : bool{
+		$this->session->getInvManager()->onClientSelectHotbarSlot($packet->hotbarSlot);
 		if(!$this->player->selectHotbarSlot($packet->hotbarSlot)){
 			$this->session->getInvManager()->syncSelectedHotbarSlot();
 		}
@@ -536,7 +553,10 @@ class InGamePacketHandler extends PacketHandler{
 			case PlayerActionPacket::ACTION_STOP_SWIMMING:
 				//TODO: handle this when it doesn't spam every damn tick (yet another spam bug!!)
 				break;
-			case PlayerActionPacket::ACTION_INTERACT_BLOCK: //ignored (for now)
+			case PlayerActionPacket::ACTION_INTERACT_BLOCK: //TODO: ignored (for now)
+				break;
+			case PlayerActionPacket::ACTION_CREATIVE_PLAYER_DESTROY_BLOCK:
+				//TODO: do we need to handle this?
 				break;
 			default:
 				$this->session->getLogger()->debug("Unhandled/unknown player action type " . $packet->action);
@@ -546,10 +566,6 @@ class InGamePacketHandler extends PacketHandler{
 		$this->player->setUsingItem(false);
 
 		return true;
-	}
-
-	public function handleActorFall(ActorFallPacket $packet) : bool{
-		return true; //Not used
 	}
 
 	public function handleAnimate(AnimatePacket $packet) : bool{
@@ -565,7 +581,7 @@ class InGamePacketHandler extends PacketHandler{
 			$this->session->getInvManager()->onClientRemoveWindow($packet->windowId);
 		}
 
-		$this->session->sendDataPacket(ContainerClosePacket::create($packet->windowId));
+		$this->session->sendDataPacket(ContainerClosePacket::create($packet->windowId, false));
 		return true;
 	}
 
