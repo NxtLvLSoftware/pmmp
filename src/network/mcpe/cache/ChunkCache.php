@@ -78,8 +78,11 @@ class ChunkCache implements ChunkListener{
 	public static function proxyCache(World $parent, World $child, Compressor $compressor) : void {
 		$worldId = spl_object_id($child);
 		$compressorId = spl_object_id($compressor);
-		self::$instances[$worldId][$compressorId] = self::getInstance($parent, $compressor);
+		self::$instances[$worldId][$compressorId] = clone self::getInstance($parent, $compressor);
 		$child->addOnUnloadCallback(static function() use ($worldId) : void{
+			foreach(self::$instances[$worldId] as $cache){
+				$cache->caches = [];
+			}
 			unset(self::$instances[$worldId]);
 			\GlobalLogger::get()->debug("Destroyed proxy chunk packet cache for world#$worldId");
 		});
