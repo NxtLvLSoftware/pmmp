@@ -1298,7 +1298,7 @@ abstract class Entity{
 
 		$oldWorld = $this->getWorld();
 		$newWorld = $pos instanceof Position ? $pos->getWorld() : $oldWorld;
-		if($oldWorld !== $newWorld){
+		if($oldWorld !== $newWorld and $this->switchWorld($newWorld)){
 			$this->despawnFromAll();
 			$oldWorld->removeEntity($this);
 		}
@@ -1320,6 +1320,10 @@ abstract class Entity{
 			$newWorld->onEntityMoved($this);
 		}
 
+		return true;
+	}
+
+	protected function switchWorld(World $targetWorld) : bool {
 		return true;
 	}
 
